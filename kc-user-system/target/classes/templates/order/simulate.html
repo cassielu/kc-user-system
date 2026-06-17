@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>模拟下单 - KC 用户管理系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --sidebar-width: 240px;
+        }
+        body { background-color: #f4f6f9; }
+        .sidebar { width: var(--sidebar-width); position: fixed; top: 0; bottom: 0; left: 0; background: #343a40; color: #fff; overflow-y: auto; }
+        .main-content { margin-left: var(--sidebar-width); padding: 20px; }
+        .code-block { background: #1e1e1e; color: #d4d4d4; padding: 12px; border-radius: 6px; font-size: 0.8rem; max-height: 500px; overflow: auto; white-space: pre-wrap; }
+        .form-section-title { font-size: 0.85rem; font-weight: 600; color: #495057; border-bottom: 2px solid #dee2e6; padding-bottom: 4px; margin-bottom: 12px; margin-top: 16px; }
+    </style>
+</head>
+<body>
+
+<!-- 左侧菜单 -->
+<div class="sidebar p-3">
+    <h5 class="mb-3"><i class="bi bi-gear-fill me-2"></i>KC 管理系统</h5>
+    <div class="nav flex-column nav-pills">
+        <a class="nav-link text-white" th:href="@{/}"><i class="bi bi-people-fill me-2"></i>用户管理</a>
+        <div class="mt-2 px-2 text-uppercase small text-white-50">业务工具</div>
+        <a class="nav-link active" th:href="@{/order/simulate}"><i class="bi bi-cart-plus-fill me-2"></i>模拟下单</a>
+        <hr class="border-secondary">
+        <a class="nav-link text-white" th:href="@{/logout}"><i class="bi bi-box-arrow-left me-2"></i>退出登录</a>
+    </div>
+</div>
+
+<!-- 主内容区 -->
+<div class="main-content">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4><i class="bi bi-cart-plus-fill me-2 text-primary"></i>模拟下单</h4>
+        <span class="badge bg-success">接口地址: <span th:text="${apiUrl}"></span></span>
+    </div>
+
+    <div class="row">
+        <!-- 左侧：表单 -->
+        <div class="col-lg-5">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <i class="bi bi-pencil-square me-1"></i> 下单参数
+                </div>
+                <div class="card-body">
+                    <form th:action="@{/order/simulate}" method="post" th:object="${form}">
+
+                        <!-- 接口凭据 -->
+                        <div class="form-section-title">
+                            <i class="bi bi-key-fill me-1 text-warning"></i>接口凭据
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold small">选择凭据 <span class="text-danger">*</span></label>
+                            <select class="form-select form-select-sm" name="credentialId" th:value="*{credentialId}" required>
+                                <option value="">-- 请选择 --</option>
+                                <option th:each="cred : ${credentials}" th:value="${cred.id}"
+                                        th:text="${cred.name} + ' (' + ${cred.accessKey} + ')'"
+                                        th:selected="${cred.id == form.credentialId}"></option>
+                            </select>
+                            <div class="form-text">凭据来自数据库 sys_api_credential，仅显示已启用</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold small">服务类型 (serviceType) <span class="text-danger">*</span></label>
+                            <select class="form-select form-select-sm" name="serviceType" th:value="*{serviceType}" required>
+                                <option value="mt" th:selected="*{serviceType == 'mt'}">mt - 美团</option>
+                                <option value="elm" th:selected="*{serviceType == 'elm'}">elm - 饿了么</option>
+                                <option value="dd" th:selected="*{serviceType == 'dd'}">dd - 滴滴</option>
+                                <option value="other" th:selected="*{serviceType == 'other'}">other - 其他</option>
+                            </select>
+                        </div>
+
+                        <!-- 基础信息 -->
+                        <div class="form-section-title">
+                            <i class="bi bi-info-circle-fill me-1 text-info"></i>基础信息（必填）
+                        </div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-6">
+                                <label class="form-label fw-semibold small">门店 ID <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-sm" name="storeId" th:value="*{storeId}" required>
+                            </div>
+                            <div class="col-6">
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                    <label class="form-label fw-semibold small mb-0">外部订单号 <span class="text-danger">*</span></label>
+                                    <button type="button" class="btn btn-outline-primary btn-sm py-0 px-2" onclick="generateOrderId()" title="一键生成">
+                                        <i class="bi bi-magic"></i>
+                                    </button>
+                                </div>
+                                <input type="text" class="form-control form-control-sm" id="extOrderIdInput" name="extOrderId" th:value="*{extOrderId}" required>
+                            </div>
+                        </div>
+
+                        <!-- 可选信息（折叠） -->
+                        <div class="mb-3">
+                            <button class="btn btn-outline-secondary btn-sm w-100" type="button" data-bs-toggle="collapse" data-bs-target="#optionalFields">
+                                <i class="bi bi-sliders me-1"></i>显示可选信息
+                            </button>
+                        </div>
+                        <div class="collapse" id="optionalFields">
+
+                        <!-- 收件人信息 -->
+                        <div class="form-section-title">
+                            <i class="bi bi-person-fill me-1 text-success"></i>收件人信息
+                        </div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-6">
+                                <label class="form-label fw-semibold small">姓名</label>
+                                <input type="text" class="form-control form-control-sm" name="name" th:value="*{name}">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label fw-semibold small">电话</label>
+                                <input type="text" class="form-control form-control-sm" name="phone" th:value="*{phone}">
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label fw-semibold small">地址</label>
+                            <input type="text" class="form-control form-control-sm" name="address" th:value="*{address}">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label fw-semibold small">用户备注</label>
+                            <textarea class="form-control form-control-sm" name="userNote" rows="1" th:text="*{userNote}"></textarea>
+                        </div>
+
+                        <!-- 订单属性 -->
+                        <div class="form-section-title">
+                            <i class="bi bi-list-check me-1 text-primary"></i>订单属性
+                        </div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-4">
+                                <label class="form-label fw-semibold small">订单类型</label>
+                                <input type="number" class="form-control form-control-sm" name="orderType" th:value="*{orderType}">
+                            </div>
+                            <div class="col-4">
+                                <label class="form-label fw-semibold small">预订单</label>
+                                <input type="number" class="form-control form-control-sm" name="book" th:value="*{book}">
+                            </div>
+                            <div class="col-4">
+                                <label class="form-label fw-semibold small">支付方式</label>
+                                <input type="number" class="form-control form-control-sm" name="payType" th:value="*{payType}">
+                            </div>
+                        </div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-4">
+                                <label class="form-label fw-semibold small">订单状态</label>
+                                <input type="number" class="form-control form-control-sm" name="orderStatus" th:value="*{orderStatus}">
+                            </div>
+                            <div class="col-4">
+                                <label class="form-label fw-semibold small">降级标记</label>
+                                <input type="number" class="form-control form-control-sm" name="downgraded" th:value="*{downgraded}">
+                            </div>
+                            <div class="col-4">
+                                <label class="form-label fw-semibold small">已支付</label>
+                                <select class="form-select form-select-sm" name="isPayed">
+                                    <option value="true" th:selected="*{isPayed}">是</option>
+                                    <option value="false" th:selected="*{!isPayed}">否</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label fw-semibold small">下单时间</label>
+                            <input type="text" class="form-control form-control-sm" name="orderTime" th:value="*{orderTime}">
+                        </div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-6">
+                                <label class="form-label fw-semibold small">第三方用户ID</label>
+                                <input type="text" class="form-control form-control-sm" name="thirdUserId" th:value="*{thirdUserId}">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label fw-semibold small">隐藏手机号</label>
+                                <input type="text" class="form-control form-control-sm" name="hiddenPhone" th:value="*{hiddenPhone}">
+                            </div>
+                        </div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-6">
+                                <label class="form-label fw-semibold small">经度</label>
+                                <input type="text" class="form-control form-control-sm" name="longitude" th:value="*{longitude}">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label fw-semibold small">纬度</label>
+                                <input type="text" class="form-control form-control-sm" name="latitude" th:value="*{latitude}">
+                            </div>
+                        </div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-6">
+                                <label class="form-label fw-semibold small">第三方流水号</label>
+                                <input type="text" class="form-control form-control-sm" name="thirdSn" th:value="*{thirdSn}">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label fw-semibold small">供应商</label>
+                                <input type="text" class="form-control form-control-sm" name="vendor" th:value="*{vendor}">
+                            </div>
+                        </div>
+
+                        <!-- 费用信息 -->
+                        <div class="form-section-title">
+                            <i class="bi bi-cash-coin me-1 text-warning"></i>费用信息
+                        </div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-4">
+                                <label class="form-label fw-semibold small">总价</label>
+                                <input type="number" step="0.01" class="form-control form-control-sm" name="price" th:value="*{price}">
+                            </div>
+                            <div class="col-4">
+                                <label class="form-label fw-semibold small">配送费</label>
+                                <input type="number" step="0.01" class="form-control form-control-sm" name="deliveryFee" th:value="*{deliveryFee}">
+                            </div>
+                            <div class="col-4">
+                                <label class="form-label fw-semibold small">餐盒费</label>
+                                <input type="number" step="0.01" class="form-control form-control-sm" name="mealFee" th:value="*{mealFee}">
+                            </div>
+                        </div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-4">
+                                <label class="form-label fw-semibold small">折扣价</label>
+                                <input type="number" step="0.01" class="form-control form-control-sm" name="discountPrice" th:value="*{discountPrice}">
+                            </div>
+                            <div class="col-4">
+                                <label class="form-label fw-semibold small">商家价</label>
+                                <input type="number" step="0.01" class="form-control form-control-sm" name="merchantPrice" th:value="*{merchantPrice}">
+                            </div>
+                            <div class="col-4">
+                                <label class="form-label fw-semibold small">佣金</label>
+                                <input type="number" step="0.01" class="form-control form-control-sm" name="commission" th:value="*{commission}">
+                            </div>
+                        </div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-4">
+                                <label class="form-label fw-semibold small">原价</label>
+                                <input type="number" step="0.01" class="form-control form-control-sm" name="originPrice" th:value="*{originPrice}">
+                            </div>
+                            <div class="col-4">
+                                <label class="form-label fw-semibold small">CPC推广费</label>
+                                <input type="number" step="0.01" class="form-control form-control-sm" name="cpcAmount" th:value="*{cpcAmount}">
+                            </div>
+                            <div class="col-4">
+                                <label class="form-label fw-semibold small">加价</label>
+                                <input type="number" step="0.01" class="form-control form-control-sm" name="pricePremiums" th:value="*{pricePremiums}">
+                            </div>
+                        </div>
+
+                        <!-- JSON 编辑器 -->
+                        <div class="form-section-title">
+                            <i class="bi bi-code-square me-1 text-danger"></i>JSON 数据
+                        </div>
+
+                        <!-- 支付明细 JSON -->
+                        <div class="mb-2">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label fw-semibold small mb-0">支付明细</label>
+                                <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2" onclick="formatJsonField('paymentDetailsJson')"><i class="bi bi-braces"></i></button>
+                            </div>
+                            <textarea class="form-control font-monospace json-editor" name="paymentDetailsJson" rows="3" style="font-size:0.76rem;" th:text="*{paymentDetailsJson}"></textarea>
+                        </div>
+
+                        <!-- 对账扩展 JSON -->
+                        <div class="mb-2">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label fw-semibold small mb-0">对账扩展</label>
+                                <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2" onclick="formatJsonField('reconciliationExtrasJson')"><i class="bi bi-braces"></i></button>
+                            </div>
+                            <textarea class="form-control font-monospace json-editor" name="reconciliationExtrasJson" rows="3" style="font-size:0.76rem;" th:text="*{reconciliationExtrasJson}"></textarea>
+                        </div>
+
+                        <!-- FT 类型 JSON -->
+                        <div class="mb-2">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label fw-semibold small mb-0">FT 类型</label>
+                                <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2" onclick="formatJsonField('ftTypeJson')"><i class="bi bi-braces"></i></button>
+                            </div>
+                            <textarea class="form-control font-monospace json-editor" name="ftTypeJson" rows="2" style="font-size:0.76rem;" th:text="*{ftTypeJson}"></textarea>
+                        </div>
+
+                        <!-- 餐品信息 -->
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label fw-semibold small mb-0">
+                                    <i class="bi bi-bag-fill me-1 text-primary"></i>餐品列表
+                                </label>
+                                <div class="d-flex gap-1">
+                                    <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2" onclick="formatJsonField('productsJson')"><i class="bi bi-braces"></i></button>
+                                    <button type="button" class="btn btn-outline-warning btn-sm py-0 px-2" onclick="resetProducts()"><i class="bi bi-arrow-counterclockwise"></i></button>
+                                </div>
+                            </div>
+                            <textarea class="form-control font-monospace json-editor" id="productsEditor" name="productsJson" rows="8" style="font-size:0.76rem;" th:text="*{productsJson}"></textarea>
+                            <div class="form-text">格式错误自动使用默认餐品</div>
+                        </div>
+
+                        <!-- 其他 -->
+                        <div class="row g-2 mb-3">
+                            <div class="col-4">
+                                <label class="form-label fw-semibold small">重量</label>
+                                <input type="number" step="0.01" class="form-control form-control-sm" name="weight" th:value="*{weight}">
+                            </div>
+                            <div class="col-4">
+                                <label class="form-label fw-semibold small">性别</label>
+                                <input type="number" class="form-control form-control-sm" name="sex" th:value="*{sex}">
+                            </div>
+                        </div>
+
+                        </div><!-- /optionalFields -->
+
+                        <button type="submit" class="btn btn-primary w-100" id="submitBtn">
+                            <i class="bi bi-send-fill me-2"></i>立即下单
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧：请求 & 响应 -->
+        <div class="col-lg-7">
+            <!-- 请求体预览 -->
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-code-slash me-1"></i> 请求体预览</span>
+                    <button class="btn btn-sm btn-outline-light" onclick="copyText('requestBlock')"><i class="bi bi-clipboard"></i> 复制</button>
+                </div>
+                <div class="card-body p-0">
+                    <div id="requestBlock" class="code-block" th:text="${requestJson}">// 提交后生成</div>
+                </div>
+            </div>
+
+            <!-- 响应结果 -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-reply-fill me-1"></i> 响应结果</span>
+                    <button class="btn btn-sm btn-outline-light" onclick="copyText('responseBlock')"><i class="bi bi-clipboard"></i> 复制</button>
+                </div>
+                <div class="card-body p-0">
+                    <div id="responseBlock" class="code-block"
+                         th:text="${response != null ? response : '// 暂无响应'}">// 暂无响应</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    function formatJsonField(name) {
+        var textarea = document.querySelector('[name="' + name + '"]');
+        if (!textarea || !textarea.value.trim()) return;
+        try {
+            var obj = JSON.parse(textarea.value);
+            textarea.value = JSON.stringify(obj, null, 2);
+        } catch (e) {
+            alert('JSON 格式错误：' + e.message);
+        }
+    }
+
+    function resetProducts() {
+        var textarea = document.getElementById('productsEditor');
+        var defaultProducts = document.querySelector('#hiddenDefaults');
+        if (defaultProducts && textarea) {
+            textarea.value = defaultProducts.value;
+        }
+    }
+
+    function copyText(id) {
+        var text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text).then(function() {
+            alert('已复制到剪贴板');
+        });
+    }
+
+    function generateOrderId() {
+        var now = new Date();
+        var timestamp = now.getFullYear()
+            + String(now.getMonth() + 1).padStart(2, '0')
+            + String(now.getDate()).padStart(2, '0')
+            + String(now.getHours()).padStart(2, '0')
+            + String(now.getMinutes()).padStart(2, '0')
+            + String(now.getSeconds()).padStart(2, '0');
+        var random = String(Math.floor(Math.random() * 900000) + 100000);
+        var orderId = timestamp + random;
+        document.getElementById('extOrderIdInput').value = orderId;
+    }
+
+    // 隐藏默认餐品 JSON 供 resetProducts 使用
+    document.addEventListener('DOMContentLoaded', function() {
+        var productsEditor = document.getElementById('productsEditor');
+        if (productsEditor) {
+            var hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.id = 'hiddenDefaults';
+            hiddenInput.value = productsEditor.value;
+            document.body.appendChild(hiddenInput);
+        }
+    });
+</script>
+</body>
+</html>

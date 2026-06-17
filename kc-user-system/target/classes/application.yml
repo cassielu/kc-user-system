@@ -1,0 +1,46 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/kc?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: sysUser
+    password: sysUser2026
+
+  # Redis 配置
+  redis:
+    host: r-uf6sn6qjwh5ntz20xypd.redis.rds.aliyuncs.com
+    port: 6379
+    password: k1JKiE5@CI7ZP*$f            # 若 Redis 设置了密码则在此填写
+    database: 55
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+        max-wait: -1ms
+
+  thymeleaf:
+    cache: false
+    encoding: UTF-8
+    mode: HTML
+
+  session:
+    timeout: 30m
+
+mybatis-plus:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.kc.system.entity
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      id-type: auto
+
+# 模拟下单接口配置（凭据移至数据库管理）
+order-api:
+  url: http://candao-api-gateway.paas-qc.can-dao.com/api
+  connect-timeout: 10000
+  read-timeout: 30000
