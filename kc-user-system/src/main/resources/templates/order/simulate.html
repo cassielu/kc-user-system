@@ -42,8 +42,13 @@
         <!-- 左侧：表单 -->
         <div class="col-lg-5">
             <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">
-                    <i class="bi bi-pencil-square me-1"></i> 下单参数
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-pencil-square me-1"></i> 下单参数</span>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-sm btn-outline-light" onclick="showImportModal()" title="粘贴 JSON 参数">
+                            <i class="bi bi-clipboard-data me-1"></i>粘贴导入
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body">
                     <form th:action="@{/order/simulate}" method="post" th:object="${form}">
@@ -337,6 +342,27 @@
     </div>
 </div>
 
+<!-- 粘贴导入 Modal -->
+<div class="modal fade" id="importModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-clipboard-data me-2"></i>粘贴请求参数 JSON</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <textarea class="form-control font-monospace" id="importJsonTextarea" rows="12"
+                          style="font-size:0.8rem;" placeholder='粘贴完整请求 JSON 或 data 内部对象...'></textarea>
+                <div class="form-text mt-2">支持两种格式：1) 完整请求体（含 data 嵌套） 2) 直接 data 对象</div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="applyImportedJson()">确认导入</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     function formatJsonField(name) {
@@ -378,6 +404,101 @@
         document.getElementById('extOrderIdInput').value = orderId;
     }
 
+    // 导入 JSON 参数
+    function showImportModal() {
+        var modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('importModal'));
+        modal.show();
+    }
+
+    function applyImportedJson() {
+        var text = document.getElementById('importJsonTextarea').value.trim();
+        if (!text) {
+            alert('请粘贴 JSON 内容');
+            return;
+        }
+
+        try {
+            var data = JSON.parse(text);
+            // 支持两种格式：完整请求体（含 data 嵌套）或直接 data 对象
+            var content = data.data || data;
+
+            // 映射字段到表单
+            var fieldMap = {
+                'storeId': 'storeId',
+                'extOrderId': 'extOrderId',
+                'extOrderNo': 'extOrderNo',
+                'thirdSn': 'thirdSn',
+                'longitude': 'longitude',
+                'latitude': 'latitude',
+                'extStoreName': 'extStoreName',
+                'name': 'name',
+                'phone': 'phone',
+                'address': 'address',
+                'userNote': 'userNote',
+                'orderType': 'orderType',
+                'book': 'book',
+                'orderTime': 'orderTime',
+                'payType': 'payType',
+                'orderStatus': 'orderStatus',
+                'downgraded': 'downgraded',
+                'isPayed': 'isPayed',
+                'thirdUserId': 'thirdUserId',
+                'hiddenPhone': 'hiddenPhone',
+                'isInvoice': 'isInvoice',
+                'peopleNum': 'peopleNum',
+                'isThirdDistribute': 'isThirdDistribute',
+                'distributeTypeCode': 'distributeTypeCode',
+                'price': 'price',
+                'deliveryFee': 'deliveryFee',
+                'mealFee': 'mealFee',
+                'discountPrice': 'discountPrice',
+                'merchantBearPrice': 'merchantBearPrice',
+                'thirdPlatformBearPrice': 'thirdPlatformBearPrice',
+                'merchantPrice': 'merchantPrice',
+                'originPrice': 'originPrice',
+                'commission': 'commission',
+                'cpcAmount': 'cpcAmount',
+                'pricePremiums': 'pricePremiums',
+                'weight': 'weight',
+                'sex': 'sex',
+                'vendor': 'vendor',
+                'serviceType': 'serviceType'
+            };
+
+            // 填充普通字段
+            for (var key in fieldMap) {
+                if (content[key] !== undefined) {
+                    var el = document.querySelector('[name="' + fieldMap[key] + '"]');
+                    if (el) {
+                        if (el.tagName === 'SELECT') {
+                            el.value = String(content[key]);
+                        } else {
+                            el.value = content[key];
+                        }
+                    }
+                }
+            }
+
+            // 填充 JSON 字段（转为字符串）
+            var jsonFields = ['paymentDetails', 'reconciliationExtras', 'ftType', 'products'];
+            jsonFields.forEach(function(field) {
+                if (content[field] !== undefined) {
+                    var el = document.querySelector('[name="' + field + 'Json"]');
+                    if (el) {
+                        el.value = JSON.stringify(content[field], null, 2);
+                    }
+                }
+            });
+
+            // 关闭 Modal
+            bootstrap.Modal.getInstance(document.getElementById('importModal')).hide();
+            document.getElementById('importJsonTextarea').value = '';
+            alert('参数导入成功！');
+        } catch (err) {
+            alert('JSON 解析失败：' + err.message);
+        }
+    }
+
     // 隐藏默认餐品 JSON 供 resetProducts 使用
     document.addEventListener('DOMContentLoaded', function() {
         var productsEditor = document.getElementById('productsEditor');
@@ -387,6 +508,20 @@
             hiddenInput.id = 'hiddenDefaults';
             hiddenInput.value = productsEditor.value;
             document.body.appendChild(hiddenInput);
+        }
+
+        // 格式化响应结果为 JSON
+        var responseBlock = document.getElementById('responseBlock');
+        if (responseBlock) {
+            var text = responseBlock.innerText.trim();
+            if (text && text !== '// 暂无响应') {
+                try {
+                    var obj = JSON.parse(text);
+                    responseBlock.innerText = JSON.stringify(obj, null, 2);
+                } catch (e) {
+                    // 不是 JSON 则保持原样
+                }
+            }
         }
     });
 </script>
