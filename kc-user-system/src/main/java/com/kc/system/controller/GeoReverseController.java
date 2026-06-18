@@ -1,6 +1,7 @@
 package com.kc.system.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.kc.system.entity.GeoReverseRecord;
 import com.kc.system.mapper.GeoReverseRecordMapper;
 import com.kc.system.service.GeoReverseService;
@@ -33,15 +34,19 @@ public class GeoReverseController {
     private final GeoReverseService geoReverseService;
     private final GeoReverseRecordMapper recordMapper;
 
+    private static final int PAGE_SIZE = 20;
+
     /** 页面 */
     @GetMapping("/reverse")
-    public String reversePage(Model model) {
-        List<GeoReverseRecord> records = recordMapper.selectList(
+    public String reversePage(@RequestParam(defaultValue = "1") int page,
+                             Model model) {
+        Page<GeoReverseRecord> pageResult = recordMapper.selectPage(
+            new Page<>(page, PAGE_SIZE),
             new LambdaQueryWrapper<GeoReverseRecord>()
                 .orderByDesc(GeoReverseRecord::getCreateTime)
-                .last("LIMIT 500")
         );
-        model.addAttribute("records", records);
+        model.addAttribute("pageResult", pageResult);
+        model.addAttribute("currentPage", page);
         return "geo/reverse";
     }
 
@@ -52,7 +57,7 @@ public class GeoReverseController {
         return recordMapper.selectList(
             new LambdaQueryWrapper<GeoReverseRecord>()
                 .orderByDesc(GeoReverseRecord::getCreateTime)
-                .last("LIMIT 500")
+                .last("LIMIT 50")
         );
     }
 
