@@ -65,12 +65,14 @@ public class SimulateOrderService {
         requestBody.put("timestamp", timestamp);
         requestBody.put("sign", sign);
 
-        // 4. 发送 HTTP POST
+        // 4. 发送 HTTP POST（优先使用凭据的 pushUrl，fallback 到配置）
+        String apiUrl = (credential.getPushUrl() != null && !credential.getPushUrl().isEmpty())
+                ? credential.getPushUrl()
+                : orderApiProperties.getUrl();
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         HttpEntity<String> entity = new HttpEntity<>(toJson(requestBody), headers);
 
-        String apiUrl = orderApiProperties.getUrl();
         log.info("[SimulateOrder] 请求地址: {}", apiUrl);
         log.debug("[SimulateOrder] 请求体: {}", toJson(requestBody));
 
@@ -133,77 +135,87 @@ public class SimulateOrderService {
     @SuppressWarnings("unchecked")
     private Map<String, Object> buildDataContent(SimulateOrderForm form) {
         Map<String, Object> data = new LinkedHashMap<>();
+        boolean importMode = Boolean.TRUE.equals(form.getImportMode());
 
         data.put("extOrderId",      form.getExtOrderId());
         data.put("extOrderNo",      form.getExtOrderId());
-        data.put("thirdSn",         form.getThirdSn());
-        data.put("longitude",       form.getLongitude());
-        data.put("latitude",        form.getLatitude());
+        putIfNotImport(data, "thirdSn", form.getThirdSn(), importMode);
+        putIfNotImport(data, "longitude", form.getLongitude(), importMode);
+        putIfNotImport(data, "latitude", form.getLatitude(), importMode);
         data.put("storeId",         form.getStoreId());
-        data.put("extStoreName",    form.getExtStoreName());
-        data.put("name",            form.getName());
-        data.put("phone",           form.getPhone());
-        data.put("address",         form.getAddress());
-        data.put("userNote",        form.getUserNote());
-        data.put("orderType",       form.getOrderType());
-        data.put("book",            form.getBook());
+        putIfNotImport(data, "extStoreName", form.getExtStoreName(), importMode);
+        putIfNotImport(data, "name", form.getName(), importMode);
+        putIfNotImport(data, "phone", form.getPhone(), importMode);
+        putIfNotImport(data, "address", form.getAddress(), importMode);
+        putIfNotImport(data, "userNote", form.getUserNote(), importMode);
+        putIfNotImport(data, "orderType", form.getOrderType(), importMode);
+        putIfNotImport(data, "book", form.getBook(), importMode);
         data.put("orderTime",       form.getOrderTime());
-        data.put("payType",         form.getPayType());
-        data.put("orderStatus",     form.getOrderStatus());
-        data.put("downgraded",      form.getDowngraded());
-        data.put("isPayed",         form.getIsPayed());
-        data.put("thirdUserId",     form.getThirdUserId());
-        data.put("hiddenPhone",     form.getHiddenPhone());
+        putIfNotImport(data, "payType", form.getPayType(), importMode);
+        putIfNotImport(data, "orderStatus", form.getOrderStatus(), importMode);
+        putIfNotImport(data, "downgraded", form.getDowngraded(), importMode);
+        putIfNotImport(data, "isPayed", form.getIsPayed(), importMode);
+        putIfNotImport(data, "thirdUserId", form.getThirdUserId(), importMode);
+        putIfNotImport(data, "hiddenPhone", form.getHiddenPhone(), importMode);
 
         // paymentDetails
-        data.put("paymentDetails", parseJson(form.getPaymentDetailsJson(), List.class));
+        putIfNotImport(data, "paymentDetails", parseJson(form.getPaymentDetailsJson(), List.class), importMode);
 
-        data.put("isInvoice",            form.getIsInvoice());
-        data.put("peopleNum",            form.getPeopleNum());
-        data.put("isThirdDistribute",    form.getIsThirdDistribute());
-        data.put("distributeTypeCode",   form.getDistributeTypeCode());
-        data.put("price",                form.getPrice());
-        data.put("deliveryFee",          form.getDeliveryFee());
-        data.put("mealFee",              form.getMealFee());
-        data.put("discountPrice",        form.getDiscountPrice());
-        data.put("merchantBearPrice",    form.getMerchantBearPrice());
-        data.put("thirdPlatformBearPrice", form.getThirdPlatformBearPrice());
-        data.put("merchantPrice",        form.getMerchantPrice());
-        data.put("originPrice",          form.getOriginPrice());
-        data.put("commission",           form.getCommission());
-        data.put("cpcAmount",            form.getCpcAmount());
-        data.put("pricePremiums",        form.getPricePremiums());
+        putIfNotImport(data, "isInvoice", form.getIsInvoice(), importMode);
+        putIfNotImport(data, "peopleNum", form.getPeopleNum(), importMode);
+        putIfNotImport(data, "isThirdDistribute", form.getIsThirdDistribute(), importMode);
+        putIfNotImport(data, "distributeTypeCode", form.getDistributeTypeCode(), importMode);
+        putIfNotImport(data, "price", form.getPrice(), importMode);
+        putIfNotImport(data, "deliveryFee", form.getDeliveryFee(), importMode);
+        putIfNotImport(data, "mealFee", form.getMealFee(), importMode);
+        putIfNotImport(data, "discountPrice", form.getDiscountPrice(), importMode);
+        putIfNotImport(data, "merchantBearPrice", form.getMerchantBearPrice(), importMode);
+        putIfNotImport(data, "thirdPlatformBearPrice", form.getThirdPlatformBearPrice(), importMode);
+        putIfNotImport(data, "merchantPrice", form.getMerchantPrice(), importMode);
+        putIfNotImport(data, "originPrice", form.getOriginPrice(), importMode);
+        putIfNotImport(data, "commission", form.getCommission(), importMode);
+        putIfNotImport(data, "cpcAmount", form.getCpcAmount(), importMode);
+        putIfNotImport(data, "pricePremiums", form.getPricePremiums(), importMode);
 
         // reconciliationExtras
-        data.put("reconciliationExtras", parseJson(form.getReconciliationExtrasJson(), Map.class));
+        putIfNotImport(data, "reconciliationExtras", parseJson(form.getReconciliationExtrasJson(), Map.class), importMode);
 
         // ftType
-        data.put("ftType", parseJson(form.getFtTypeJson(), Map.class));
+        putIfNotImport(data, "ftType", parseJson(form.getFtTypeJson(), Map.class), importMode);
 
         // products
         data.put("products", resolveProducts(form.getProductsJson()));
 
-        data.put("weight",                form.getWeight());
-        data.put("allowanceServiceFee",   0.0);
-        data.put("contributionAmount",    0.0);
-        data.put("publicWelfareGoodsFee", 0.0);
-        data.put("isFavorites",           true);
-        data.put("baseLogisticsServiceFee", 0.0);
-        data.put("distanceIncreaseFee",   0.0);
-        data.put("timeIntervalMarkUpFee", 0.0);
-        data.put("agentBearPrice",        0.0);
-        data.put("sex",                   form.getSex());
-        data.put("surCharge",             0.0);
-        data.put("fulfillServiceFee",     0.0);
-        data.put("commissionReturnFee",   0.0);
-        data.put("isAbnormalOrder",       false);
-        data.put("userPrepaidAmount",     0.0);
-        data.put("isSqtOrder",            false);
-        data.put("isSqtInvoice",          false);
-        data.put("lowincomeOrder",        0);
-        data.put("isOneUrgentDelivery",   false);
+        putIfNotImport(data, "weight", form.getWeight(), importMode);
+        putIfNotImport(data, "allowanceServiceFee", 0.0, importMode);
+        putIfNotImport(data, "contributionAmount", 0.0, importMode);
+        putIfNotImport(data, "publicWelfareGoodsFee", 0.0, importMode);
+        putIfNotImport(data, "isFavorites", true, importMode);
+        putIfNotImport(data, "baseLogisticsServiceFee", 0.0, importMode);
+        putIfNotImport(data, "distanceIncreaseFee", 0.0, importMode);
+        putIfNotImport(data, "timeIntervalMarkUpFee", 0.0, importMode);
+        putIfNotImport(data, "agentBearPrice", 0.0, importMode);
+        putIfNotImport(data, "sex", form.getSex(), importMode);
+        putIfNotImport(data, "surCharge", 0.0, importMode);
+        putIfNotImport(data, "fulfillServiceFee", 0.0, importMode);
+        putIfNotImport(data, "commissionReturnFee", 0.0, importMode);
+        putIfNotImport(data, "isAbnormalOrder", false, importMode);
+        putIfNotImport(data, "userPrepaidAmount", 0.0, importMode);
+        putIfNotImport(data, "isSqtOrder", false, importMode);
+        putIfNotImport(data, "isSqtInvoice", false, importMode);
+        putIfNotImport(data, "lowincomeOrder", 0, importMode);
+        putIfNotImport(data, "isOneUrgentDelivery", false, importMode);
 
         return data;
+    }
+
+    /**
+     * 非导入模式下才 put 值（导入模式下由用户 JSON 提供，不使用默认值）
+     */
+    private void putIfNotImport(Map<String, Object> map, String key, Object value, boolean importMode) {
+        if (!importMode || value != null) {
+            map.put(key, value);
+        }
     }
 
     /** 32位 MD5 签名：accessKey + actionName + secret + timestamp + dataJson */

@@ -5,6 +5,9 @@ import lombok.Data;
 @Data
 public class SimulateOrderForm {
 
+    /** 是否为导入模式（true=使用导入数据，不使用默认值） */
+    private Boolean importMode = false;
+
     /** 接口凭据 ID（必填，关联 sys_api_credential） */
     private Long credentialId;
 
@@ -136,4 +139,7 @@ public class SimulateOrderForm {
 
     /** 供应商 */
     private String vendor = "";
+
+    /** 请求地址（从凭据获取，可覆盖） */
+    private String pushUrl;
 }

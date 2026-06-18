@@ -44,3 +44,11 @@ order-api:
   url: http://candao-api-gateway.paas-qc.can-dao.com/api
   connect-timeout: 10000
   read-timeout: 30000
+
+# 高德地图 API 配置
+gaode:
+  api:
+    key: "5a50e48e9449be0651ad79ab183962a9"  # 替换为你的高德 API Key
+    reverse-geocode-url: https://restapi.amap.com/v3/geocode/regeo
+    rate-limit: 3  # 每秒最大请求数（免费 key 并发限制）
+    rate-window: 1000  # 限频窗口（毫秒）

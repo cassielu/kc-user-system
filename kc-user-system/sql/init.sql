@@ -42,6 +42,7 @@ CREATE TABLE sys_api_credential (
     name           VARCHAR(100) NOT NULL COMMENT '凭据名称',
     access_key     VARCHAR(100) NOT NULL COMMENT 'accessKey',
     secret         VARCHAR(200) NOT NULL COMMENT '签名密钥',
+    push_url       VARCHAR(500) NOT NULL DEFAULT '' COMMENT '下单请求地址',
     status         TINYINT      NOT NULL DEFAULT 1 COMMENT '状态：1-启用，0-禁用',
     remark         VARCHAR(500) DEFAULT '' COMMENT '备注',
     create_time    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
@@ -51,5 +52,27 @@ CREATE TABLE sys_api_credential (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='接口凭据表';
 
 -- 初始凭据（来自用户提供的示例）
-INSERT INTO sys_api_credential (name, access_key, secret, status, remark)
-VALUES ('测试环境-美团', 'fc21380e7544216f', 'your-secret-key', 1, '测试环境默认凭据');
+INSERT INTO sys_api_credential (name, access_key, secret, push_url, status, remark)
+VALUES ('测试环境-美团', 'fc21380e7544216f', 'your-secret-key', 'http://candao-api-gateway.paas-qc-vpc.can-dao.com/api', 1, '测试环境默认凭据');
+
+-- =============================================
+-- 坐标逆地理编码记录表
+-- =============================================
+DROP TABLE IF EXISTS geo_reverse_record;
+CREATE TABLE geo_reverse_record (
+    id             BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    batch_no       VARCHAR(50)  NOT NULL DEFAULT '' COMMENT '批次号',
+    longitude      DECIMAL(10,6) NOT NULL COMMENT '经度',
+    latitude       DECIMAL(10,6) NOT NULL COMMENT '纬度',
+    province       VARCHAR(50)  DEFAULT '' COMMENT '省',
+    city           VARCHAR(50)  DEFAULT '' COMMENT '市',
+    district       VARCHAR(50)  DEFAULT '' COMMENT '区',
+    address        VARCHAR(500) DEFAULT '' COMMENT '详细地址',
+    status         TINYINT      NOT NULL DEFAULT 0 COMMENT '状态：0-待解析，1-成功，2-失败',
+    error_msg      VARCHAR(200) DEFAULT '' COMMENT '错误信息',
+    create_time    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (id),
+    INDEX idx_batch_no (batch_no),
+    INDEX idx_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='坐标逆地理编码记录表';

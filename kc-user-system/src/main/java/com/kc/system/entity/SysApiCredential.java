@@ -24,6 +24,8 @@ public class SysApiCredential implements Serializable {
 
     private String secret;
 
+    private String pushUrl;
+
     private Integer status;
 
     private String remark;

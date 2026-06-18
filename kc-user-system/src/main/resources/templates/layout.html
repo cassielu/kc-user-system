@@ -6,7 +6,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title th:replace="${pageTitle}">KC 用户管理系统</title>
+    <title th:replace="${pageTitle}">任意门</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
@@ -60,7 +60,7 @@
 <!-- 顶部导航栏 -->
 <nav class="top-navbar d-flex align-items-center px-4">
     <a class="brand me-auto" th:href="@{/}">
-        <i class="bi bi-grid-3x3-gap-fill me-2"></i>KC 用户管理系统
+        <i class="bi bi-grid-3x3-gap-fill me-2"></i>任意门
     </a>
     <div class="d-flex align-items-center gap-3">
         <span class="user-info">
@@ -99,6 +99,12 @@
             <a class="nav-link" th:href="@{/order/simulate}"
                th:classappend="${#httpServletRequest.requestURI.startsWith('/order')} ? 'active' : ''">
                 <i class="bi bi-cart-plus-fill"></i>模拟下单
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" th:href="@{/geo/reverse}"
+               th:classappend="${#httpServletRequest.requestURI.startsWith('/geo')} ? 'active' : ''">
+                <i class="bi bi-geo-alt-fill"></i>坐标解析
             </a>
         </li>
     </ul>

@@ -1,38 +1,15 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" lang="zh-CN">
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(~{::title}, ~{::section})}">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>模拟下单 - KC 用户管理系统</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <title>模拟下单 - 任意门</title>
+</head>
+<body>
+<section>
     <style>
-        :root {
-            --sidebar-width: 240px;
-        }
-        body { background-color: #f4f6f9; }
-        .sidebar { width: var(--sidebar-width); position: fixed; top: 0; bottom: 0; left: 0; background: #343a40; color: #fff; overflow-y: auto; }
-        .main-content { margin-left: var(--sidebar-width); padding: 20px; }
         .code-block { background: #1e1e1e; color: #d4d4d4; padding: 12px; border-radius: 6px; font-size: 0.8rem; max-height: 500px; overflow: auto; white-space: pre-wrap; }
         .form-section-title { font-size: 0.85rem; font-weight: 600; color: #495057; border-bottom: 2px solid #dee2e6; padding-bottom: 4px; margin-bottom: 12px; margin-top: 16px; }
     </style>
-</head>
-<body>
-
-<!-- 左侧菜单 -->
-<div class="sidebar p-3">
-    <h5 class="mb-3"><i class="bi bi-gear-fill me-2"></i>KC 管理系统</h5>
-    <div class="nav flex-column nav-pills">
-        <a class="nav-link text-white" th:href="@{/}"><i class="bi bi-people-fill me-2"></i>用户管理</a>
-        <div class="mt-2 px-2 text-uppercase small text-white-50">业务工具</div>
-        <a class="nav-link active" th:href="@{/order/simulate}"><i class="bi bi-cart-plus-fill me-2"></i>模拟下单</a>
-        <hr class="border-secondary">
-        <a class="nav-link text-white" th:href="@{/logout}"><i class="bi bi-box-arrow-left me-2"></i>退出登录</a>
-    </div>
-</div>
-
-<!-- 主内容区 -->
-<div class="main-content">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h4><i class="bi bi-cart-plus-fill me-2 text-primary"></i>模拟下单</h4>
         <span class="badge bg-success">接口地址: <span th:text="${apiUrl}"></span></span>
@@ -59,21 +36,93 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-semibold small">选择凭据 <span class="text-danger">*</span></label>
-                            <select class="form-select form-select-sm" name="credentialId" th:value="*{credentialId}" required>
+                            <select class="form-select form-select-sm" name="credentialId" id="credentialSelect" th:value="*{credentialId}" required>
                                 <option value="">-- 请选择 --</option>
                                 <option th:each="cred : ${credentials}" th:value="${cred.id}"
                                         th:text="${cred.name} + ' (' + ${cred.accessKey} + ')'"
-                                        th:selected="${cred.id == form.credentialId}"></option>
+                                        th:selected="${cred.id == form.credentialId}"
+                                        th:data-push-url="${cred.pushUrl}"></option>
                             </select>
                             <div class="form-text">凭据来自数据库 sys_api_credential，仅显示已启用</div>
                         </div>
                         <div class="mb-3">
+                            <label class="form-label fw-semibold small">请求地址（pushUrl）</label>
+                            <div class="input-group input-group-sm">
+                                <input type="text" class="form-control font-monospace" id="pushUrlDisplay"
+                                       readonly placeholder="选择凭据后显示">
+                                <span class="input-group-text bg-light small" id="pushUrlBadge">默认地址</span>
+                            </div>
+                            <div class="form-text">来自所选凭据的配置，留空则使用系统默认</div>
+                        </div>
+                        <div class="mb-3">
                             <label class="form-label fw-semibold small">服务类型 (serviceType) <span class="text-danger">*</span></label>
-                            <select class="form-select form-select-sm" name="serviceType" th:value="*{serviceType}" required>
-                                <option value="mt" th:selected="*{serviceType == 'mt'}">mt - 美团</option>
-                                <option value="elm" th:selected="*{serviceType == 'elm'}">elm - 饿了么</option>
-                                <option value="dd" th:selected="*{serviceType == 'dd'}">dd - 滴滴</option>
-                                <option value="other" th:selected="*{serviceType == 'other'}">other - 其他</option>
+                            <select class="form-select form-select-sm" name="serviceType" id="serviceTypeSelect" required>
+                                <option value="ele">ele - 饿了么</option>
+                                <option value="mt" selected>mt - 美团</option>
+                                <option value="elestar">elestar - 饿了么星选</option>
+                                <option value="dwb">dwb - 点我吧</option>
+                                <option value="jddj">jddj - 京东到家</option>
+                                <option value="linqu">linqu - 邻趣</option>
+                                <option value="daojia">daojia - 到家美食</option>
+                                <option value="youzan">youzan - 有赞云</option>
+                                <option value="mtdp">mtdp - 美团点评</option>
+                                <option value="kb">kb - 口碑</option>
+                                <option value="eb">eb - 饿百零售</option>
+                                <option value="mtts">mtts - 美团堂食</option>
+                                <option value="tmall">tmall - 天猫</option>
+                                <option value="didi">didi - 滴滴外卖</option>
+                                <option value="zhct">zhct - 美团智慧餐厅</option>
+                                <option value="mtls">mtls - 美团新零售</option>
+                                <option value="mtsg">mtsg - 美团闪购</option>
+                                <option value="hema">hema - 盒马鲜生</option>
+                                <option value="aomi">aomi - 澳觅#即将弃用</option>
+                                <option value="sherpa">sherpa - 食派士</option>
+                                <option value="mttg">mttg - 美团团购</option>
+                                <option value="mtdptg">mtdptg - 美团点评团购</option>
+                                <option value="mttstg">mttstg - 美团堂食团购</option>
+                                <option value="tmallcs">tmallcs - 天猫超市</option>
+                                <option value="yzls">yzls - 有赞零售</option>
+                                <option value="wxxd">wxxd - 微信小店</option>
+                                <option value="mtphf">mtphf - 美团点评拼好饭</option>
+                                <option value="mtppphf">mtppphf - 美团品牌拼好饭</option>
+                                <option value="wjtz">wjtz - 京东物竞天择</option>
+                                <option value="jdzhx">jdzhx - 京东自核销</option>
+                                <option value="dytgps">dytgps - 抖音团购配送</option>
+                                <option value="mtzxd">mtzxd - 美团在线点</option>
+                                <option value="dycs">dycs - 抖音超市</option>
+                                <option value="mttgps">mttgps - 美团团购配送</option>
+                                <option value="dydjwm">dydjwm - 抖音到家外卖（废弃）</option>
+                                <option value="dyzxd">dyzxd - 抖音在线点</option>
+                                <option value="dyxcx">dyxcx - 餐道抖音小程序</option>
+                                <option value="elept">elept - 饿了么拼团</option>
+                                <option value="tbst">tbst - 淘宝闪提</option>
+                                <option value="xiaozhen">xiaozhen - 小镇外卖平台</option>
+                                <option value="cr12306">cr12306 - 12306</option>
+                                <option value="foodpanda">foodpanda - foodpanda</option>
+                                <option value="deliveroo">deliveroo - deliveroo</option>
+                                <option value="mtos">mtos - keeta</option>
+                                <option value="grabfood">grabfood - grabfood</option>
+                                <option value="fantuan">fantuan - 饭团</option>
+                                <option value="hungrypanda">hungrypanda - 熊猫</option>
+                                <option value="ubereats">ubereats - ubereats</option>
+                                <option value="shopeefoodvn">shopeefoodvn - 越南shopeefood</option>
+                                <option value="shopeefoodmy">shopeefoodmy - 马来西亚shopeefood</option>
+                                <option value="shopeefoodth">shopeefoodth - 泰国shopeefood</option>
+                                <option value="lineman">lineman - lineman</option>
+                                <option value="befood">befood - befood</option>
+                                <option value="gofood">gofood - gofood</option>
+                                <option value="mfood">mfood - mfood</option>
+                                <option value="doordashmp">doordashmp - doordash外卖</option>
+                                <option value="gokoo">gokoo - gokoo悟空外卖</option>
+                                <option value="aomiv2">aomiv2 - 澳觅V2</option>
+                                <option value="egets">egets - e-gets简单点</option>
+                                <option value="delivery">delivery - 骑手系统</option>
+                                <option value="pos">pos - 对接开放平台的POS系统</option>
+                                <option value="crm">crm - 对接开放平台的CRM系统</option>
+                                <option value="pay">pay - 对接开放平台的支付系统</option>
+                                <option value="receipt">receipt - 对接开放平台的发票系统</option>
+                                <option value="print">print - 对接开放平台的云打印系统</option>
+                                <option value="im">im - 对接开放平台的hr/短信系统</option>
                             </select>
                         </div>
 
@@ -365,6 +414,32 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+    // 凭据切换时自动显示请求地址
+    document.addEventListener('DOMContentLoaded', function() {
+        var credSelect = document.getElementById('credentialSelect');
+        var pushUrlDisplay = document.getElementById('pushUrlDisplay');
+        var pushUrlBadge = document.getElementById('pushUrlBadge');
+
+        function updatePushUrl() {
+            var selectedOption = credSelect.options[credSelect.selectedIndex];
+            var pushUrl = selectedOption ? selectedOption.getAttribute('data-push-url') : '';
+            if (pushUrl && pushUrl !== '') {
+                pushUrlDisplay.value = pushUrl;
+                pushUrlBadge.textContent = '自定义';
+                pushUrlBadge.className = 'input-group-text bg-light small text-primary fw-semibold';
+            } else {
+                pushUrlDisplay.value = '';
+                pushUrlDisplay.placeholder = '使用系统默认地址';
+                pushUrlBadge.textContent = '默认地址';
+                pushUrlBadge.className = 'input-group-text bg-light small';
+            }
+        }
+
+        credSelect.addEventListener('change', updatePushUrl);
+        // 页面加载时初始化
+        updatePushUrl();
+    });
+
     function formatJsonField(name) {
         var textarea = document.querySelector('[name="' + name + '"]');
         if (!textarea || !textarea.value.trim()) return;
@@ -421,6 +496,9 @@
             var data = JSON.parse(text);
             // 支持两种格式：完整请求体（含 data 嵌套）或直接 data 对象
             var content = data.data || data;
+
+            // 如果 serviceType 在顶层（完整请求体格式），优先使用顶层的
+            var serviceTypeValue = data.serviceType || content.serviceType;
 
             // 映射字段到表单
             var fieldMap = {
@@ -479,6 +557,14 @@
                 }
             }
 
+            // 特殊处理：serviceType 下拉框自动选中
+            if (serviceTypeValue !== undefined) {
+                var serviceTypeSelect = document.getElementById('serviceTypeSelect');
+                if (serviceTypeSelect) {
+                    serviceTypeSelect.value = String(serviceTypeValue);
+                }
+            }
+
             // 填充 JSON 字段（转为字符串）
             var jsonFields = ['paymentDetails', 'reconciliationExtras', 'ftType', 'products'];
             jsonFields.forEach(function(field) {
@@ -493,6 +579,17 @@
             // 关闭 Modal
             bootstrap.Modal.getInstance(document.getElementById('importModal')).hide();
             document.getElementById('importJsonTextarea').value = '';
+
+            // 设置导入模式标记
+            var importModeInput = document.querySelector('[name="importMode"]');
+            if (!importModeInput) {
+                importModeInput = document.createElement('input');
+                importModeInput.type = 'hidden';
+                importModeInput.name = 'importMode';
+                document.querySelector('form').appendChild(importModeInput);
+            }
+            importModeInput.value = 'true';
+
             alert('参数导入成功！');
         } catch (err) {
             alert('JSON 解析失败：' + err.message);
@@ -525,5 +622,6 @@
         }
     });
 </script>
+</section>
 </body>
 </html>
