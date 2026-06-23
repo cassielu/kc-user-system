@@ -49,14 +49,15 @@
                         <th>真实姓名</th>
                         <th>手机号</th>
                         <th>&#37038;&#31665;</th>
+                        <th>角色</th>
                         <th>状态</th>
                         <th>创建时间</th>
-                        <th class="text-center" style="width:180px">操作</th>
+                        <th class="text-center" style="width:220px">操作</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr th:if="${pageResult.records.isEmpty()}">
-                        <td colspan="8" class="text-center text-muted py-5">
+                        <td colspan="9" class="text-center text-muted py-5">
                             <i class="bi bi-inbox fs-3 d-block mb-2"></i>暂无用户数据
                         </td>
                     </tr>
@@ -79,7 +80,18 @@
                             <span th:if="${user.status == 0}" class="badge bg-danger-subtle text-danger border border-danger-subtle">禁用</span>
                         </td>
                         <td th:text="${#temporals.format(user.createTime, 'yyyy-MM-dd HH:mm')}" class="text-muted small">-</td>
+                        <td>
+                            <div class="user-roles" th:data-user-id="${user.id}">
+                                <span class="text-muted small">加载中...</span>
+                            </div>
+                        </td>
                         <td class="text-center">
+                            <button type="button" class="btn btn-sm btn-outline-info me-1" 
+                                    th:data-user-id="${user.id}" 
+                                    th:data-user-name="${user.username}"
+                                    onclick="showRoleModal(this)">
+                                <i class="bi bi-person-badge"></i> 角色
+                            </button>
                             <a th:href="@{/user/edit/{id}(id=${user.id})}"
                                class="btn btn-sm btn-outline-primary me-1">
                                 <i class="bi bi-pencil-fill"></i>
@@ -178,6 +190,50 @@
         </div>
     </div>
 
+    <!-- 角色分配模态框 -->
+    <div class="modal fade" id="roleModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title fw-bold">
+                        <i class="bi bi-person-badge-fill me-2 text-info"></i>分配角色
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="roleUserId">
+                    <!-- CSRF Token -->
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" id="csrfToken"/>
+                    <div class="mb-3">
+                        <label class="form-label text-muted small">用户</label>
+                        <div class="fw-bold" id="roleUserName"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted small">选择角色</label>
+                        <div id="roleList" class="border rounded p-3" style="max-height:300px;overflow-y:auto;">
+                            <div class="text-center text-muted py-3">
+                                <div class="spinner-border spinner-border-sm" role="status">
+                                    <span class="visually-hidden">加载中...</span>
+                                </div>
+                                <span class="ms-2">加载角色列表...</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="alert alert-info small mb-0">
+                        <i class="bi bi-info-circle me-1"></i>
+                        用户将拥有所选角色的所有权限，修改后需用户重新登录生效
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+                    <button type="button" id="saveRoleBtn" class="btn btn-primary btn-sm">
+                        <i class="bi bi-check-circle me-1"></i>保存
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         let deleteFormId = null;
         let toggleFormId = null;
@@ -202,13 +258,6 @@
             bootstrap.Modal.getOrCreateInstance(document.getElementById('toggleModal')).show();
         }
 
-        document.getElementById('confirmToggleBtn').addEventListener('click', function () {
-            if (toggleFormId) {
-                bootstrap.Modal.getInstance(document.getElementById('toggleModal')).hide();
-                document.getElementById(toggleFormId).submit();
-            }
-        });
-
         /* 删除确认 */
         function confirmDelete(btn) {
             deleteFormId = 'del-form-' + btn.dataset.id;
@@ -216,11 +265,160 @@
             bootstrap.Modal.getOrCreateInstance(document.getElementById('deleteModal')).show();
         }
 
-        document.getElementById('confirmDeleteBtn').addEventListener('click', function () {
-            if (deleteFormId) {
-                bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();
-                document.getElementById(deleteFormId).submit();
+        /* 显示角色分配模态框 */
+        function showRoleModal(btn) {
+            const userId = btn.dataset.userId;
+            const userName = btn.dataset.userName;
+            
+            document.getElementById('roleUserId').value = userId;
+            document.getElementById('roleUserName').textContent = userName;
+            
+            // 加载角色列表
+            loadRoleList(userId);
+            
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('roleModal')).show();
+        }
+
+        /* 加载角色列表 */
+        function loadRoleList(userId) {
+            const roleListDiv = document.getElementById('roleList');
+            roleListDiv.innerHTML = '<div class="text-center text-muted py-3"><div class="spinner-border spinner-border-sm" role="status"></div><span class="ms-2">加载角色列表...</span></div>';
+            
+            fetch('/user/role-info/' + userId)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.allRoles && data.allRoles.length > 0) {
+                        let html = '';
+                        data.allRoles.forEach(role => {
+                            const checked = data.userRoleIds.includes(role.id) ? 'checked' : '';
+                            html += '<div class="form-check mb-2">';
+                            html += '  <input class="form-check-input role-checkbox" type="checkbox" value="' + role.id + '" id="role-' + role.id + '" ' + checked + '>';
+                            html += '  <label class="form-check-label" for="role-' + role.id + '">';
+                            html += '    <strong>' + role.roleName + '</strong>';
+                            html += '    <small class="text-muted d-block">' + (role.remark || '无描述') + '</small>';
+                            html += '  </label>';
+                            html += '</div>';
+                        });
+                        roleListDiv.innerHTML = html;
+                    } else {
+                        roleListDiv.innerHTML = '<div class="text-center text-danger py-3">暂无可用角色</div>';
+                    }
+                })
+                .catch(error => {
+                    roleListDiv.innerHTML = '<div class="text-center text-danger py-3">加载失败</div>';
+                    console.error('加载角色列表失败:', error);
+                });
+        }
+
+        /* 加载用户角色显示 */
+        function loadUserRoles(userId) {
+            fetch('/user/role-info/' + userId)
+                .then(response => response.json())
+                .then(data => {
+                    const element = document.querySelector('.user-roles[data-user-id="' + userId + '"]');
+                    if (data.allRoles && data.allRoles.length > 0) {
+                        const roleNames = data.allRoles
+                            .filter(role => data.userRoleIds.includes(role.id))
+                            .map(role => '<span class="badge bg-primary me-1">' + role.roleName + '</span>')
+                            .join('');
+                        element.innerHTML = roleNames || '<span class="text-muted small">未分配</span>';
+                    } else {
+                        element.innerHTML = '<span class="text-muted small">无可用角色</span>';
+                    }
+                })
+                .catch(error => {
+                    console.error('加载角色失败:', error);
+                });
+        }
+
+        /* 页面加载完成后绑定按钮事件 */
+        document.addEventListener('DOMContentLoaded', function() {
+            // 绑定确认停用/启用按钮
+            const confirmToggleBtn = document.getElementById('confirmToggleBtn');
+            if (confirmToggleBtn) {
+                confirmToggleBtn.addEventListener('click', function () {
+                    if (toggleFormId) {
+                        bootstrap.Modal.getInstance(document.getElementById('toggleModal')).hide();
+                        document.getElementById(toggleFormId).submit();
+                    }
+                });
             }
+
+            // 绑定确认删除按钮
+            const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+            if (confirmDeleteBtn) {
+                confirmDeleteBtn.addEventListener('click', function () {
+                    if (deleteFormId) {
+                        bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();
+                        document.getElementById(deleteFormId).submit();
+                    }
+                });
+            }
+
+            // 绑定保存角色按钮
+            const saveRoleBtn = document.getElementById('saveRoleBtn');
+            if (saveRoleBtn) {
+                saveRoleBtn.addEventListener('click', function() {
+                    const userId = document.getElementById('roleUserId').value;
+                    const checkedRoles = document.querySelectorAll('.role-checkbox:checked');
+                    const roleIds = Array.from(checkedRoles).map(cb => cb.value);
+                    
+                    // 构建表单数据（包含CSRF Token）
+                    const formData = new URLSearchParams();
+                    roleIds.forEach(id => formData.append('roleIds', id));
+                    
+                    // 添加CSRF Token
+                    const csrfToken = document.getElementById('csrfToken');
+                    if (csrfToken) {
+                        formData.append(csrfToken.name, csrfToken.value);
+                    }
+                    
+                    // 显示加载提示
+                    const saveBtn = document.getElementById('saveRoleBtn');
+                    const originalText = saveBtn.innerHTML;
+                    saveBtn.disabled = true;
+                    saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>保存中...';
+                    
+                    fetch('/user/assign-role/' + userId, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded'
+                        },
+                        body: formData.toString()
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('网络响应错误: ' + response.status);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            bootstrap.Modal.getInstance(document.getElementById('roleModal')).hide();
+                            // 刷新角色显示
+                            loadUserRoles(userId);
+                            // 显示成功提示
+                            alert('角色分配成功！用户需重新登录生效。');
+                        } else {
+                            alert('保存失败: ' + (data.message || '未知错误'));
+                        }
+                    })
+                    .catch(error => {
+                        console.error('保存角色失败:', error);
+                        alert('保存失败: ' + error.message);
+                    })
+                    .finally(() => {
+                        saveBtn.disabled = false;
+                        saveBtn.innerHTML = originalText;
+                    });
+                });
+            }
+
+            // 页面加载时显示所有用户的角色
+            document.querySelectorAll('.user-roles[data-user-id]').forEach(function(element) {
+                const userId = element.dataset.userId;
+                loadUserRoles(userId);
+            });
         });
     </script>
 </section>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kc.system.mapper.SysMenuMapper">
+
+    <!-- 根据用户ID查询菜单权限编码列表 -->
+    <select id="selectMenuCodesByUserId" resultType="java.lang.String">
+        SELECT DISTINCT m.menu_code
+        FROM sys_menu m
+        INNER JOIN sys_role_menu rm ON m.id = rm.menu_id
+        INNER JOIN sys_user_role ur ON rm.role_id = ur.role_id
+        WHERE ur.user_id = #{userId}
+          AND m.status = 1
+    </select>
+
+</mapper>

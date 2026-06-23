@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity5"
+      th:replace="~{layout :: layout(~{::title}, ~{::section})}">
+<head>
+    <title>欢迎 - 任意门</title>
+</head>
+<body>
+<section>
+    <!-- 欢迎标题 -->
+    <div class="mb-4">
+        <h3 class="fw-bold text-primary mb-1">
+            <i class="bi bi-hand-thumbs-up-fill me-2"></i>欢迎使用任意门管理系统
+        </h3>
+        <p class="text-muted mb-0">您好，<span sec:authentication="name" class="fw-bold text-dark"></span>，祝您工作愉快！</p>
+    </div>
+
+    <!-- 统计卡片 -->
+    <div class="row g-4 mb-4">
+        <!-- 用户统计 -->
+        <div class="col-md-4" sec:authorize="hasAuthority('menu:user:list')">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="bg-primary bg-opacity-10 rounded-3 p-3">
+                                <i class="bi bi-people-fill text-primary" style="font-size: 2rem;"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="text-muted mb-1">用户管理</h6>
+                            <h3 class="mb-0 fw-bold">系统用户</h3>
+                            <small class="text-muted">管理系统用户账号</small>
+                        </div>
+                    </div>
+                    <a th:href="@{/user/list}" class="btn btn-sm btn-outline-primary mt-3 w-100">
+                        <i class="bi bi-arrow-right me-1"></i>进入管理
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 角色统计 -->
+        <div class="col-md-4" sec:authorize="hasAuthority('menu:role:list')">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="bg-success bg-opacity-10 rounded-3 p-3">
+                                <i class="bi bi-shield-fill-check text-success" style="font-size: 2rem;"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="text-muted mb-1">角色管理</h6>
+                            <h3 class="mb-0 fw-bold">权限配置</h3>
+                            <small class="text-muted">配置角色和菜单权限</small>
+                        </div>
+                    </div>
+                    <a th:href="@{/role/list}" class="btn btn-sm btn-outline-success mt-3 w-100">
+                        <i class="bi bi-arrow-right me-1"></i>进入管理
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 接口凭据 -->
+        <div class="col-md-4" sec:authorize="hasAuthority('menu:credential:list')">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="bg-warning bg-opacity-10 rounded-3 p-3">
+                                <i class="bi bi-key-fill text-warning" style="font-size: 2rem;"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="text-muted mb-1">接口凭据</h6>
+                            <h3 class="mb-0 fw-bold">API管理</h3>
+                            <small class="text-muted">管理API接口凭据</small>
+                        </div>
+                    </div>
+                    <a th:href="@{/credential/list}" class="btn btn-sm btn-outline-warning mt-3 w-100">
+                        <i class="bi bi-arrow-right me-1"></i>进入管理
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 业务工具 -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-6" sec:authorize="hasAuthority('menu:order:simulate')">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-info bg-opacity-10 rounded-3 p-3 me-3">
+                            <i class="bi bi-cart-plus-fill text-info" style="font-size: 1.5rem;"></i>
+                        </div>
+                        <div>
+                            <h5 class="mb-1 fw-bold">模拟下单</h5>
+                            <p class="text-muted mb-0 small">测试下单接口功能</p>
+                        </div>
+                    </div>
+                    <a th:href="@{/order/simulate}" class="btn btn-sm btn-outline-info w-100">
+                        <i class="bi bi-play-circle me-1"></i>开始使用
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6" sec:authorize="hasAuthority('menu:geo:reverse')">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-secondary bg-opacity-10 rounded-3 p-3 me-3">
+                            <i class="bi bi-geo-alt-fill text-secondary" style="font-size: 1.5rem;"></i>
+                        </div>
+                        <div>
+                            <h5 class="mb-1 fw-bold">坐标解析</h5>
+                            <p class="text-muted mb-0 small">逆地理编码解析</p>
+                        </div>
+                    </div>
+                    <a th:href="@{/geo/reverse}" class="btn btn-sm btn-outline-secondary w-100">
+                        <i class="bi bi-play-circle me-1"></i>开始使用
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 系统信息 -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white py-3">
+            <h6 class="mb-0 fw-bold">
+                <i class="bi bi-info-circle me-2 text-primary"></i>系统信息
+            </h6>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <table class="table table-sm table-borderless mb-0">
+                        <tr>
+                            <td class="text-muted" style="width: 120px;">系统名称</td>
+                            <td class="fw-bold">任意门管理系统</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">系统版本</td>
+                            <td>v1.0.0</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">技术栈</td>
+                            <td>Spring Boot + MyBatis Plus</td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <table class="table table-sm table-borderless mb-0">
+                        <tr>
+                            <td class="text-muted" style="width: 120px;">前端框架</td>
+                            <td>Thymeleaf + Bootstrap 5</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">数据库</td>
+                            <td>MySQL 8.0</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">缓存</td>
+                            <td>Redis</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 快捷操作提示 -->
+    <div class="alert alert-info mt-4 mb-0" role="alert">
+        <i class="bi bi-lightbulb me-2"></i>
+        <strong>提示：</strong>
+        根据您的权限，上方显示了您可以访问的功能模块。点击"进入管理"或"开始使用"即可开始操作。
+    </div>
+</section>
+</body>
+</html>

@@ -5,12 +5,15 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.kc.system.entity.SysUser;
+import com.kc.system.mapper.SysMenuMapper;
+import com.kc.system.mapper.SysRoleMapper;
 import com.kc.system.mapper.SysUserMapper;
 import com.kc.system.service.SysUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -19,27 +22,48 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> implements SysUserService {
 
-    private final SysUserMapper sysUserMapper;
     private final PasswordEncoder passwordEncoder;
+    private final SysRoleMapper sysRoleMapper;
+    private final SysMenuMapper sysMenuMapper;
 
     /**
-     * 按用户名加载用户（Spring Security 认证入口）
-     * 先查 Redis，命中则直接返回，未命中才查 DB 并写入缓存，TTL = 30 分钟
+     * 按用户名加载用户(SPRING Security 认证入口)
+     * 先查 Redis,命中则直接返回,未命中才查 DB 并写入缓存,TTL = 30 分钟
      */
     @Override
     @Cacheable(value = "user:auth", key = "#username")
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        SysUser user = sysUserMapper.findByUsername(username);
+        SysUser user = getBaseMapper().findByUsername(username);
         if (user == null) {
-            throw new UsernameNotFoundException("用户不存在：" + username);
+            throw new UsernameNotFoundException("用户不存在:" + username);
         }
-        // 通过 enabled=false 让 Spring Security 抛出 DisabledException，而非简单返回密码错误
+            
+        // 动态加载角色和菜单权限
+        List<String> roles = sysRoleMapper.selectRoleCodesByUserId(user.getId());
+        List<String> menus = sysMenuMapper.selectMenuCodesByUserId(user.getId());
+            
+        List<GrantedAuthority> authorities = new ArrayList<>();
+        // 添加角色权限
+        if (roles != null && !roles.isEmpty()) {
+            roles.forEach(role -> authorities.add(new SimpleGrantedAuthority(role)));
+        } else {
+            // 默认角色
+            authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
+        }
+        // 添加菜单权限
+        if (menus != null) {
+            menus.forEach(menu -> authorities.add(new SimpleGrantedAuthority(menu)));
+        }
+            
+        // 通过 enabled=false 让 Spring Security 抛出 DisabledException,而非简单返回密码错误
         return new User(
                 user.getUsername(),
                 user.getPassword(),
@@ -47,7 +71,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
                 true,                    // accountNonExpired
                 true,                    // credentialsNonExpired
                 true,                    // accountNonLocked
-                Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"))
+                authorities
         );
     }
 
@@ -58,7 +82,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     @Override
     @Cacheable(value = "user:page", key = "#page.current + ':' + #page.size + ':' + (#keyword ?: '')")
     public IPage<SysUser> pageByKeyword(Page<SysUser> page, String keyword) {
-        return sysUserMapper.selectPageByKeyword(page, keyword);
+        return getBaseMapper().selectPageByKeyword(page, keyword);
     }
 
     /**
@@ -77,7 +101,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     @CacheEvict(value = "user:page", allEntries = true)
     public void addUser(SysUser user) {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-        sysUserMapper.insert(user);
+        getBaseMapper().insert(user);
     }
 
     /**
@@ -92,7 +116,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
             @CacheEvict(value = "user:page",  allEntries = true)
     })
     public void updateUser(SysUser user) {
-        SysUser existing = sysUserMapper.selectById(user.getId());
+        SysUser existing = getBaseMapper().selectById(user.getId());
         if (existing == null) {
             throw new IllegalArgumentException("用户不存在");
         }
@@ -104,7 +128,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         } else {
             user.setPassword(passwordEncoder.encode(user.getPassword()));
         }
-        sysUserMapper.updateById(user);
+        getBaseMapper().updateById(user);
     }
 
     /**
@@ -113,7 +137,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     @Override
     @CacheEvict(value = "user:page", allEntries = true)
     public boolean removeById(java.io.Serializable id) {
-        SysUser existing = sysUserMapper.selectById(id);
+        SysUser existing = getBaseMapper().selectById(id);
         if (existing != null) {
             evictAuthCache(existing.getUsername());
             evictIdCache(id);
@@ -131,7 +155,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
 
     @Override
     public boolean existsByUsername(String username) {
-        return sysUserMapper.selectCount(
+        return getBaseMapper().selectCount(
                 new LambdaQueryWrapper<SysUser>().eq(SysUser::getUsername, username)
         ) > 0;
     }

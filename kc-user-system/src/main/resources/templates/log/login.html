@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(~{::title}, ~{::section})}">
+<head>
+    <title>登录日志 - 任意门</title>
+</head>
+<body>
+<section>
+    <!-- 页面标题栏 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="mb-0 fw-bold text-primary">
+            <i class="bi bi-box-arrow-in-right me-2"></i>登录日志
+        </h4>
+    </div>
+
+    <!-- 搜索栏 -->
+    <div class="content-card mb-4">
+        <form th:action="@{/log/login}" method="get" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label small text-muted">用户名</label>
+                <input type="text" class="form-control form-control-sm" name="username" 
+                       th:value="${username}" placeholder="输入用户名">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small text-muted">登录状态</label>
+                <select class="form-select form-select-sm" name="status">
+                    <option value="">全部</option>
+                    <option value="1" th:selected="${status == 1}">成功</option>
+                    <option value="0" th:selected="${status == 0}">失败</option>
+                </select>
+            </div>
+            <div class="col-md-6 d-flex align-items-end gap-2">
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="bi bi-search me-1"></i>查询
+                </button>
+                <a th:href="@{/log/login}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-clockwise me-1"></i>重置
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- 数据表格 -->
+    <div class="content-card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 50px;">ID</th>
+                        <th style="width: 120px;">用户名</th>
+                        <th style="width: 120px;">IP地址</th>
+                        <th>浏览器信息</th>
+                        <th style="width: 100px;">状态</th>
+                        <th>提示信息</th>
+                        <th style="width: 160px;">登录时间</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="log : ${logs}">
+                        <td th:text="${log.id}"></td>
+                        <td>
+                            <span class="fw-bold" th:text="${log.username}"></span>
+                        </td>
+                        <td>
+                            <code class="small" th:text="${log.ip ?: '-'}"></code>
+                        </td>
+                        <td>
+                            <div class="text-truncate" style="max-width: 250px;" th:title="${log.userAgent}" th:text="${log.userAgent ?: '-'}"></div>
+                        </td>
+                        <td>
+                            <span th:if="${log.status == 1}" class="badge bg-success">
+                                <i class="bi bi-check-circle me-1"></i>成功
+                            </span>
+                            <span th:if="${log.status == 0}" class="badge bg-danger">
+                                <i class="bi bi-x-circle me-1"></i>失败
+                            </span>
+                        </td>
+                        <td>
+                            <small th:classappend="${log.status == 0} ? 'text-danger' : 'text-muted'" 
+                                   th:text="${log.message}"></small>
+                        </td>
+                        <td>
+                            <small class="text-muted" th:text="${#temporals.format(log.loginTime, 'yyyy-MM-dd HH:mm:ss')}"></small>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(logs)}">
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox display-4 d-block mb-2"></i>
+                            暂无登录日志
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 分页 -->
+        <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top" th:if="${!#lists.isEmpty(logs)}">
+            <div class="text-muted small">
+                共 <span th:text="${page.total}"></span> 条记录，
+                第 <span th:text="${page.current}"></span> / <span th:text="${page.pages}"></span> 页
+            </div>
+            <nav>
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item" th:classappend="${page.current <= 1} ? 'disabled'">
+                        <a class="page-link" th:href="@{/log/login(page=${page.current - 1}, username=${username}, status=${status})}">上一页</a>
+                    </li>
+                    <li class="page-item" th:each="i : ${#numbers.sequence(1, page.pages)}"
+                        th:classappend="${i == page.current} ? 'active'">
+                        <a class="page-link" th:href="@{/log/login(page=${i}, username=${username}, status=${status})}" th:text="${i}"></a>
+                    </li>
+                    <li class="page-item" th:classappend="${page.current >= page.pages} ? 'disabled'">
+                        <a class="page-link" th:href="@{/log/login(page=${page.current + 1}, username=${username}, status=${status})}">下一页</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</section>
+</body>
+</html>

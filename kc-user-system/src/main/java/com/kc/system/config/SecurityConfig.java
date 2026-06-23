@@ -1,26 +1,57 @@
 package com.kc.system.config;
 
+import com.kc.system.component.CustomLoginFailureHandler;
+import com.kc.system.component.CustomLoginSuccessHandler;
 import com.kc.system.service.SysUserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.firewall.HttpFirewall;
+import org.springframework.security.web.firewall.StrictHttpFirewall;
 
 @Configuration
 @EnableWebSecurity
+@EnableGlobalMethodSecurity(prePostEnabled = true)
 @RequiredArgsConstructor
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     private final SysUserService sysUserService;
     private final PasswordEncoder passwordEncoder;
+    private final CustomLoginSuccessHandler customLoginSuccessHandler;
+    private final CustomLoginFailureHandler customLoginFailureHandler;
+
+    /**
+     * 配置HTTP防火墙，处理不支持的HTTP方法
+     * 生产环境中可能会收到TRACE等方法的扫描请求，返回405而不是抛异常
+     */
+    @Bean
+    public HttpFirewall allowStrictHttpFirewall() {
+        StrictHttpFirewall firewall = new StrictHttpFirewall();
+        // 使用默认配置即可，TRACE等方法默认就被拒绝
+        // 这里主要是确保防火墙正常工作
+        return firewall;
+    }
 
     @Override
     protected void configure(AuthenticationManagerBuilder auth) throws Exception {
         auth.userDetailsService(sysUserService).passwordEncoder(passwordEncoder);
+    }
+
+    /**
+     * 配置HTTP防火墙
+     * 生产环境中可能会收到TRACE等方法的扫描请求
+     */
+    @Override
+    public void configure(WebSecurity web) throws Exception {
+        web.httpFirewall(allowStrictHttpFirewall());
     }
 
     @Override
@@ -37,15 +68,8 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
             .formLogin()
                 .loginPage("/login")
                 .loginProcessingUrl("/login")
-                .defaultSuccessUrl("/user/list", true)
-                .failureHandler((request, response, exception) -> {
-                    // 区分账号禁用和密码错误，跳转不同的 URL 参数
-                    if (exception instanceof DisabledException) {
-                        response.sendRedirect("/login?disabled");
-                    } else {
-                        response.sendRedirect("/login?error");
-                    }
-                })
+                .successHandler(customLoginSuccessHandler)
+                .failureHandler(customLoginFailureHandler)
                 .permitAll()
             .and()
             .logout()

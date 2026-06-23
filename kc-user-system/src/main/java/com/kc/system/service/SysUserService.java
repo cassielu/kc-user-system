@@ -27,4 +27,9 @@ public interface SysUserService extends IService<SysUser>, UserDetailsService {
      * 用户名是否已存在
      */
     boolean existsByUsername(String username);
+
+    /**
+     * 清除用户认证缓存
+     */
+    void evictAuthCache(String username);
 }

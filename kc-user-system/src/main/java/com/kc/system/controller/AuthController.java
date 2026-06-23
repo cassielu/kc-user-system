@@ -16,10 +16,10 @@ public class AuthController {
     }
 
     /**
-     * 首页重定向到用户列表
+     * 首页重定向到欢迎页
      */
     @GetMapping("/")
     public String index() {
-        return "redirect:/user/list";
+        return "redirect:/dashboard";
     }
 }

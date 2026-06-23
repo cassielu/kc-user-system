@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>角色管理 - 任意门</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        body { background-color: #f4f6fb; }
+        .content-card {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            padding: 24px;
+        }
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        .page-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #333;
+            margin: 0;
+        }
+        .table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+        .btn-action {
+            padding: 4px 12px;
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body>
+<div th:replace="~{layout :: layout(~{::title}, ~{::section})}">
+    <title>角色管理 - 任意门</title>
+    <section class="content-card">
+        <!-- 页面头部 -->
+        <div class="page-header">
+            <h1 class="page-title">
+                <i class="bi bi-shield-fill-check me-2"></i>角色管理
+            </h1>
+            <button class="btn btn-primary" onclick="showAddModal()">
+                <i class="bi bi-plus-circle me-1"></i>新增角色
+            </button>
+        </div>
+
+        <!-- 角色列表表格 -->
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th width="80">ID</th>
+                    <th>角色名称</th>
+                    <th>角色编码</th>
+                    <th width="100">状态</th>
+                    <th width="150">备注</th>
+                    <th width="200">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="role : ${roles}">
+                    <td th:text="${role.id}"></td>
+                    <td>
+                        <strong th:text="${role.roleName}"></strong>
+                    </td>
+                    <td>
+                        <code th:text="${role.roleCode}"></code>
+                    </td>
+                    <td>
+                        <span th:if="${role.status == 1}" class="badge bg-success">启用</span>
+                        <span th:if="${role.status == 0}" class="badge bg-danger">禁用</span>
+                    </td>
+                    <td th:text="${role.remark}"></td>
+                    <td>
+                        <a th:href="@{/role/permission/{id}(id=${role.id})}" class="btn btn-sm btn-info btn-action">
+                            <i class="bi bi-key-fill me-1"></i>分配权限
+                        </a>
+                        <a th:href="@{/role/edit/{id}(id=${role.id})}" class="btn btn-sm btn-warning btn-action">
+                            <i class="bi bi-pencil-square me-1"></i>编辑
+                        </a>
+                        <button th:if="${role.id != 1}" class="btn btn-sm btn-danger btn-action" 
+                                th:onclick="'deleteRole(' + ${role.id} + ')'">
+                            <i class="bi bi-trash me-1"></i>删除
+                        </button>
+                    </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(roles)}">
+                    <td colspan="6" class="text-center text-muted py-4">
+                        <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                        暂无角色数据
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+</div>
+
+<!-- 新增角色模态框 -->
+<div class="modal fade" id="addRoleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form th:action="@{/role/add}" method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title">新增角色</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">角色名称 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="roleName" required placeholder="例如: 运营人员">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">角色编码 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="roleCode" required placeholder="例如: ROLE_OPERATOR">
+                        <div class="form-text">格式: ROLE_XXX，大写字母和下划线</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">状态</label>
+                        <select class="form-select" name="status">
+                            <option value="1">启用</option>
+                            <option value="0">禁用</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">备注</label>
+                        <textarea class="form-control" name="remark" rows="3" placeholder="角色说明"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script th:inline="javascript">
+    // 显示新增模态框
+    function showAddModal() {
+        var modal = new bootstrap.Modal(document.getElementById('addRoleModal'));
+        modal.show();
+    }
+
+    // 删除角色
+    function deleteRole(id) {
+        Swal.fire({
+            title: '确认删除?',
+            text: "删除后无法恢复!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: '是的,删除!',
+            cancelButtonText: '取消'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch('/role/delete/' + id, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire('成功!', data.message, 'success').then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire('失败!', data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    Swal.fire('错误!', '网络请求失败', 'error');
+                });
+            }
+        });
+    }
+</script>
+</body>
+</html>

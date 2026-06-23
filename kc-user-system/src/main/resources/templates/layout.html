@@ -78,36 +78,80 @@
 
 <!-- 侧边栏 -->
 <div class="sidebar">
-    <div class="menu-title">系统管理</div>
-    <ul class="nav flex-column">
-        <li class="nav-item">
-            <a class="nav-link" th:href="@{/user/list}"
-               th:classappend="${#httpServletRequest.requestURI.startsWith('/user')} ? 'active' : ''">
-                <i class="bi bi-people-fill"></i>用户管理
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" th:href="@{/credential/list}"
-               th:classappend="${#httpServletRequest.requestURI.startsWith('/credential')} ? 'active' : ''">
-                <i class="bi bi-key-fill"></i>接口凭据
-            </a>
-        </li>
-    </ul>
-    <div class="menu-title mt-2">业务工具</div>
-    <ul class="nav flex-column">
-        <li class="nav-item">
-            <a class="nav-link" th:href="@{/order/simulate}"
-               th:classappend="${#httpServletRequest.requestURI.startsWith('/order')} ? 'active' : ''">
-                <i class="bi bi-cart-plus-fill"></i>模拟下单
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" th:href="@{/geo/reverse}"
-               th:classappend="${#httpServletRequest.requestURI.startsWith('/geo')} ? 'active' : ''">
-                <i class="bi bi-geo-alt-fill"></i>坐标解析
-            </a>
-        </li>
-    </ul>
+    <!-- 欢迎页 -->
+    <div>
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link" th:href="@{/dashboard}"
+                   th:classappend="${#httpServletRequest.requestURI == '/dashboard'} ? 'active' : ''">
+                    <i class="bi bi-house-door-fill"></i>首页
+                </a>
+            </li>
+        </ul>
+    </div>
+    
+    <!-- 系统管理目录 - 需要 menu:system 权限 -->
+    <div sec:authorize="hasAuthority('menu:system')">
+        <div class="menu-title">系统管理</div>
+        <ul class="nav flex-column">
+            <!-- 用户管理 - 需要 menu:user:list 权限 -->
+            <li class="nav-item" sec:authorize="hasAuthority('menu:user:list')">
+                <a class="nav-link" th:href="@{/user/list}"
+                   th:classappend="${#httpServletRequest.requestURI.startsWith('/user')} ? 'active' : ''">
+                    <i class="bi bi-people-fill"></i>用户管理
+                </a>
+            </li>
+            <!-- 接口凭据 - 需要 menu:credential:list 权限 -->
+            <li class="nav-item" sec:authorize="hasAuthority('menu:credential:list')">
+                <a class="nav-link" th:href="@{/credential/list}"
+                   th:classappend="${#httpServletRequest.requestURI.startsWith('/credential')} ? 'active' : ''">
+                    <i class="bi bi-key-fill"></i>接口凭据
+                </a>
+            </li>
+            <!-- 角色管理 - 需要 menu:role:list 权限 -->
+            <li class="nav-item" sec:authorize="hasAuthority('menu:role:list')">
+                <a class="nav-link" th:href="@{/role/list}"
+                   th:classappend="${#httpServletRequest.requestURI.startsWith('/role')} ? 'active' : ''">
+                    <i class="bi bi-shield-fill-check"></i>角色管理
+                </a>
+            </li>
+            <!-- 操作日志 - 需要 menu:log:list 权限 -->
+            <li class="nav-item" sec:authorize="hasAuthority('menu:log:list')">
+                <a class="nav-link" th:href="@{/log/list}"
+                   th:classappend="${#httpServletRequest.requestURI.startsWith('/log/list')} ? 'active' : ''">
+                    <i class="bi bi-journal-text"></i>操作日志
+                </a>
+            </li>
+            <!-- 登录日志 - 需要 menu:log:login 权限 -->
+            <li class="nav-item" sec:authorize="hasAuthority('menu:log:login')">
+                <a class="nav-link" th:href="@{/log/login}"
+                   th:classappend="${#httpServletRequest.requestURI.startsWith('/log/login')} ? 'active' : ''">
+                    <i class="bi bi-box-arrow-in-right"></i>登录日志
+                </a>
+            </li>
+        </ul>
+    </div>
+    
+    <!-- 业务工具目录 - 需要 menu:business 权限 -->
+    <div sec:authorize="hasAuthority('menu:business')">
+        <div class="menu-title mt-2">业务工具</div>
+        <ul class="nav flex-column">
+            <!-- 模拟下单 - 需要 menu:order:simulate 权限 -->
+            <li class="nav-item" sec:authorize="hasAuthority('menu:order:simulate')">
+                <a class="nav-link" th:href="@{/order/simulate}"
+                   th:classappend="${#httpServletRequest.requestURI.startsWith('/order')} ? 'active' : ''">
+                    <i class="bi bi-cart-plus-fill"></i>模拟下单
+                </a>
+            </li>
+            <!-- 坐标解析 - 需要 menu:geo:reverse 权限 -->
+            <li class="nav-item" sec:authorize="hasAuthority('menu:geo:reverse')">
+                <a class="nav-link" th:href="@{/geo/reverse}"
+                   th:classappend="${#httpServletRequest.requestURI.startsWith('/geo')} ? 'active' : ''">
+                    <i class="bi bi-geo-alt-fill"></i>坐标解析
+                </a>
+            </li>
+        </ul>
+    </div>
 </div>
 
 <!-- 主内容区 -->

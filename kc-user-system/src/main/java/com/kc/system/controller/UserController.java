@@ -2,7 +2,10 @@ package com.kc.system.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.kc.system.component.OperationLogHelper;
+import com.kc.system.entity.SysRole;
 import com.kc.system.entity.SysUser;
+import com.kc.system.service.SysRoleService;
 import com.kc.system.service.SysUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -13,12 +16,18 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 @Controller
 @RequestMapping("/user")
 @RequiredArgsConstructor
 public class UserController {
 
     private final SysUserService sysUserService;
+    private final SysRoleService sysRoleService;
+    private final OperationLogHelper operationLogHelper;
 
     private static final int PAGE_SIZE = 10;
 
@@ -145,5 +154,66 @@ public class UserController {
         sysUserService.removeById(id);
         ra.addFlashAttribute("success", "用户删除成功");
         return "redirect:/user/list";
+    }
+
+    /**
+     * 为用户分配角色（AJAX接口）
+     */
+    @PostMapping("/assign-role/{userId}")
+    @ResponseBody
+    public Map<String, Object> assignRole(@PathVariable Long userId,
+                                           @RequestParam(required = false) List<Long> roleIds) {
+        long startTime = System.currentTimeMillis();
+        Map<String, Object> result = new HashMap<>();
+        try {
+            sysRoleService.assignRoles(userId, roleIds);
+            // 清除用户认证缓存
+            SysUser user = sysUserService.getById(userId);
+            if (user != null) {
+                sysUserService.evictAuthCache(user.getUsername());
+            }
+            result.put("success", true);
+            result.put("message", "角色分配成功");
+            
+            // 记录日志
+            long costTime = System.currentTimeMillis() - startTime;
+            operationLogHelper.logSuccess(
+                "分配用户角色: " + (user != null ? user.getUsername() : userId),
+                "POST /user/assign-role/" + userId,
+                "roleIds=" + roleIds,
+                costTime
+            );
+        } catch (Exception e) {
+            result.put("success", false);
+            result.put("message", "角色分配失败: " + e.getMessage());
+            
+            // 记录错误日志
+            long costTime = System.currentTimeMillis() - startTime;
+            operationLogHelper.logError(
+                "分配用户角色失败",
+                "POST /user/assign-role/" + userId,
+                "roleIds=" + roleIds,
+                e.getMessage(),
+                costTime
+            );
+        }
+        return result;
+    }
+
+    /**
+     * 获取用户角色和所有角色列表（AJAX接口）
+     */
+    @GetMapping("/role-info/{userId}")
+    @ResponseBody
+    public Map<String, Object> getUserRoleInfo(@PathVariable Long userId) {
+        Map<String, Object> result = new HashMap<>();
+        // 获取所有启用的角色
+        List<SysRole> allRoles = sysRoleService.listEnabledRoles();
+        // 获取用户已分配的角色ID
+        List<Long> userRoleIds = sysRoleService.getUserRoleIds(userId);
+        
+        result.put("allRoles", allRoles);
+        result.put("userRoleIds", userRoleIds);
+        return result;
     }
 }
